@@ -196,12 +196,16 @@ public class telnet extends Panel implements Runnable, MouseListener, FocusListe
 
 
     public void keyTyped(KeyEvent event) {
-        transmit(translate_key(event));
     }
 
 
     public void keyPressed(KeyEvent event) {
-        transmit(translate_special_key(event));
+        String result = translate_key(event);
+        if (result != null && !result.isEmpty()) {
+            transmit(result);
+        } else {
+            transmit(translate_special_key(event));
+        }
     }
 
 
@@ -404,26 +408,87 @@ public class telnet extends Panel implements Runnable, MouseListener, FocusListe
     }
 
 
+    private static final char[] VK_TO_CHAR = new char[256];
+    static {
+        VK_TO_CHAR[KeyEvent.VK_SPACE] = ' ';
+        VK_TO_CHAR[KeyEvent.VK_0] = '0'; VK_TO_CHAR[KeyEvent.VK_1] = '1';
+        VK_TO_CHAR[KeyEvent.VK_2] = '2'; VK_TO_CHAR[KeyEvent.VK_3] = '3';
+        VK_TO_CHAR[KeyEvent.VK_4] = '4'; VK_TO_CHAR[KeyEvent.VK_5] = '5';
+        VK_TO_CHAR[KeyEvent.VK_6] = '6'; VK_TO_CHAR[KeyEvent.VK_7] = '7';
+        VK_TO_CHAR[KeyEvent.VK_8] = '8'; VK_TO_CHAR[KeyEvent.VK_9] = '9';
+        VK_TO_CHAR[KeyEvent.VK_A] = 'a'; VK_TO_CHAR[KeyEvent.VK_B] = 'b';
+        VK_TO_CHAR[KeyEvent.VK_C] = 'c'; VK_TO_CHAR[KeyEvent.VK_D] = 'd';
+        VK_TO_CHAR[KeyEvent.VK_E] = 'e'; VK_TO_CHAR[KeyEvent.VK_F] = 'f';
+        VK_TO_CHAR[KeyEvent.VK_G] = 'g'; VK_TO_CHAR[KeyEvent.VK_H] = 'h';
+        VK_TO_CHAR[KeyEvent.VK_I] = 'i'; VK_TO_CHAR[KeyEvent.VK_J] = 'j';
+        VK_TO_CHAR[KeyEvent.VK_K] = 'k'; VK_TO_CHAR[KeyEvent.VK_L] = 'l';
+        VK_TO_CHAR[KeyEvent.VK_M] = 'm'; VK_TO_CHAR[KeyEvent.VK_N] = 'n';
+        VK_TO_CHAR[KeyEvent.VK_O] = 'o'; VK_TO_CHAR[KeyEvent.VK_P] = 'p';
+        VK_TO_CHAR[KeyEvent.VK_Q] = 'q'; VK_TO_CHAR[KeyEvent.VK_R] = 'r';
+        VK_TO_CHAR[KeyEvent.VK_S] = 's'; VK_TO_CHAR[KeyEvent.VK_T] = 't';
+        VK_TO_CHAR[KeyEvent.VK_U] = 'u'; VK_TO_CHAR[KeyEvent.VK_V] = 'v';
+        VK_TO_CHAR[KeyEvent.VK_W] = 'w'; VK_TO_CHAR[KeyEvent.VK_X] = 'x';
+        VK_TO_CHAR[KeyEvent.VK_Y] = 'y'; VK_TO_CHAR[KeyEvent.VK_Z] = 'z';
+        VK_TO_CHAR[KeyEvent.VK_SEMICOLON] = ';';
+        VK_TO_CHAR[KeyEvent.VK_EQUALS] = '=';
+        VK_TO_CHAR[KeyEvent.VK_COMMA] = ',';
+        VK_TO_CHAR[KeyEvent.VK_MINUS] = '-';
+        VK_TO_CHAR[KeyEvent.VK_PERIOD] = '.';
+        VK_TO_CHAR[KeyEvent.VK_SLASH] = '/';
+        VK_TO_CHAR[KeyEvent.VK_BACK_QUOTE] = '`';
+        VK_TO_CHAR[KeyEvent.VK_OPEN_BRACKET] = '[';
+        VK_TO_CHAR[KeyEvent.VK_BACK_SLASH] = '\\';
+        VK_TO_CHAR[KeyEvent.VK_CLOSE_BRACKET] = ']';
+        VK_TO_CHAR[KeyEvent.VK_QUOTE] = '\'';
+    }
+
+    private static final char[] VK_TO_SHIFTED_CHAR = new char[256];
+    static {
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_1] = '!'; VK_TO_SHIFTED_CHAR[KeyEvent.VK_2] = '@';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_3] = '#'; VK_TO_SHIFTED_CHAR[KeyEvent.VK_4] = '$';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_5] = '%'; VK_TO_SHIFTED_CHAR[KeyEvent.VK_6] = '^';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_7] = '&'; VK_TO_SHIFTED_CHAR[KeyEvent.VK_8] = '*';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_9] = '('; VK_TO_SHIFTED_CHAR[KeyEvent.VK_0] = ')';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_MINUS] = '_';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_EQUALS] = '+';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_COMMA] = '<';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_PERIOD] = '>';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_SLASH] = '?';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_SEMICOLON] = ':';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_QUOTE] = '"';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_BACK_SLASH] = '|';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_OPEN_BRACKET] = '{';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_CLOSE_BRACKET] = '}';
+        VK_TO_SHIFTED_CHAR[KeyEvent.VK_BACK_QUOTE] = '~';
+        for (char c = 'A'; c <= 'Z'; c++) {
+            VK_TO_SHIFTED_CHAR[c] = c;
+        }
+    }
+
     protected synchronized String translate_key(KeyEvent keyEvent) {
         char c = keyEvent.getKeyChar();
+        int vk = keyEvent.getKeyCode();
         String str;
-        switch (c) {
-            case '\n':
-            case '\r':
-                if (keyEvent.isShiftDown()) {
-                    str = "\n";
-                } else {
-                    str = "\r";
-                }
-                break;
 
-            case '\t':
-                str = "";
-                break;
-            case 11:
-            case '\f':
-            default:
-                str = this.translator.translate(c);
+        if (vk == KeyEvent.VK_ENTER) {
+            str = keyEvent.isShiftDown() ? "\n" : "\r";
+        } else if (vk == KeyEvent.VK_TAB) {
+            str = "";
+        } else if (vk >= 0 && vk < VK_TO_CHAR.length && VK_TO_CHAR[vk] != 0) {
+            if (keyEvent.isShiftDown() && vk < VK_TO_SHIFTED_CHAR.length && VK_TO_SHIFTED_CHAR[vk] != 0) {
+                str = this.translator.translate(VK_TO_SHIFTED_CHAR[vk]);
+            } else {
+                boolean wasCapsLock = java.awt.Toolkit.getDefaultToolkit().getLockingKeyState(KeyEvent.VK_CAPS_LOCK);
+                char mapped;
+                if (wasCapsLock) {
+                    mapped = Character.toUpperCase(VK_TO_CHAR[vk]);
+                } else {
+                    mapped = VK_TO_CHAR[vk];
+                }
+                str = this.translator.translate(mapped);
+            }
+        } else {
+            str = this.translator.translate(c);
         }
 
         return str;

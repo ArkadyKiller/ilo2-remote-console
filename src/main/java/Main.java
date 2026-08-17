@@ -30,6 +30,18 @@ var sessionindex="00000005";
 */
 
 public class Main {
+
+    private static String splitSafe(String text, String delimiter, String endDelim) {
+        try {
+            String[] parts = text.split(delimiter, 2);
+            if (parts.length < 2) return "";
+            String[] after = parts[1].split(endDelim, 2);
+            return after[0];
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private static final String USAGE_TEXT = "Usage: \n" +
             "- ILO2RemCon.jar <Hostname or IP> <Username> <Password>\n" +
             "- ILO2RemCon.jar -c <Path to config.properties>";
@@ -175,25 +187,25 @@ public class Main {
 
         String res = response.toString();
 
-        hmap.put("INFO0", res.split("info0=\"")[1].split("\";")[0]);
-        hmap.put("INFO1", res.split("info1=\"")[1].split("\";")[0]);
-        hmap.put("INFO3", res.split("info3=\"")[1].split("\";")[0]);
-        hmap.put("INFO6", res.split("info6=\"")[1].split("\";")[0]);
-        hmap.put("INFO7", res.split("info7=")[1].split(";")[0]);
-        hmap.put("INFO8", res.split("info8=\"")[1].split("\";")[0]);
+        hmap.put("INFO0", splitSafe(res, "info0=\"", "\";"));
+        hmap.put("INFO1", splitSafe(res, "info1=\"", "\";"));
+        hmap.put("INFO3", splitSafe(res, "info3=\"", "\";"));
+        hmap.put("INFO6", splitSafe(res, "info6=\"", "\";"));
+        hmap.put("INFO7", splitSafe(res, "info7=", ";"));
+        hmap.put("INFO8", splitSafe(res, "info8=\"", "\";"));
 
-        hmap.put("INFOA", res.split("infoa=\"")[1].split("\";")[0]);
-        hmap.put("INFOB", res.split("infob=\"")[1].split("\";")[0]);
-        hmap.put("INFOC", res.split("infoc=\"")[1].split("\";")[0]);
-        hmap.put("INFOD", res.split("infod=\"")[1].split("\";")[0]);
+        hmap.put("INFOA", splitSafe(res, "infoa=\"", "\";"));
+        hmap.put("INFOB", splitSafe(res, "infob=\"", "\";"));
+        hmap.put("INFOC", splitSafe(res, "infoc=\"", "\";"));
+        hmap.put("INFOD", splitSafe(res, "infod=\"", "\";"));
 
-        hmap.put("INFOM", res.split("infom=")[1].split(";")[0]);
-        hmap.put("INFOMM", res.split("infomm=")[1].split(";")[0]);
+        hmap.put("INFOM", splitSafe(res, "infom=", ";"));
+        hmap.put("INFOMM", splitSafe(res, "infomm=", ";"));
 
-        hmap.put("INFON", res.split("infon=")[1].split(";")[0]);
-        hmap.put("INFOO", res.split("infoo=\"")[1].split("\";")[0]);
+        hmap.put("INFON", splitSafe(res, "infon=", ";"));
+        hmap.put("INFOO", splitSafe(res, "infoo=\"", "\";"));
 
-        hmap.put("CABBASE", res.split("<PARAM NAME=CABBASE VALUE=")[1].split(">\"")[0]);
+        hmap.put("CABBASE", splitSafe(res, "<PARAM NAME=CABBASE VALUE=", ">\""));
 
         System.out.println("CABBASE = " + hmap.get("CABBASE"));
     }
