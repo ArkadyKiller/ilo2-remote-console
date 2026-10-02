@@ -116,7 +116,13 @@ public class dvcwin extends Canvas implements Runnable {
         this.imageSource.newPixels(paramInt1, paramInt2, paramInt3, 16, false);
     }
 
+    public static volatile int LAST_W = 0;
+    public static volatile int LAST_H = 0;
+
     public void set_abs_dimensions(int width, int height) {
+        LAST_W = width;
+        LAST_H = height;
+        System.out.println("VIDEO DIM " + width + "x" + height);
         if ((width != this.screenX) || (height != this.screenY)) {
             synchronized (this) {
                 this.screenX = width;

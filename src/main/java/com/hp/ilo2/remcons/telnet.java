@@ -278,6 +278,7 @@ public class telnet extends Panel implements Runnable, MouseListener, FocusListe
 
 
     public synchronized void connect(String paramString1, String paramString2, int paramInt1, int paramInt2, int paramInt3) {
+        System.out.println("TELNET CONNECT " + paramString1 + ":" + paramInt1 + " connected=" + this.connected);
         this.enable_terminal_services = ((paramInt2 & 0x1) == 1);
         this.ts_type = (paramInt2 >> 8);
 
@@ -306,6 +307,7 @@ public class telnet extends Panel implements Runnable, MouseListener, FocusListe
                 this.in = new DataInputStream(this.s.getInputStream());
                 this.out = new DataOutputStream(this.s.getOutputStream());
                 set_status(1, "Online");
+                System.out.println("TELNET ONLINE " + this.host + ":" + this.port);
 
 
                 this.receiver = new Thread(this);

@@ -7,6 +7,7 @@
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import java.security.Security;
@@ -74,10 +75,12 @@ public class Main {
         SSLUtilities.trustAllHostnames();
         SSLUtilities.trustAllHttpsCertificates();
         System.setProperty("https.protocols", "TLSv1");
-        System.setProperty("javax.net.debug", "all");
+        System.setProperty("javax.net.debug", "");
         Security.setProperty("jdk.tls.disabledAlgorithms", "");
         URL obj = new URL(loginURL);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+        con.setConnectTimeout(30000);
+        con.setReadTimeout(90000);
 
         // optional default is GET
         //con.setRequestMethod("GET");
@@ -115,13 +118,14 @@ public class Main {
         URL obj = new URL("https://" + hostname + "/index.htm");
 
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+        con.setConnectTimeout(30000);
+        con.setReadTimeout(90000);
 
         con.setRequestProperty("User-Agent", USER_AGENT);
         con.setRequestProperty("Referer", loginURL);
         con.setRequestProperty("Host", hostname);
         con.setRequestProperty("Accept-Language", "de-DE");
         //Cookie:
-        con.setDoOutput(true);
 
         Base64.Encoder enc2 = Base64.getMimeEncoder(); //Authenticate
         String cookieVal = String.format("hp-iLO-Login=%s:%s:%s:%s",
@@ -162,6 +166,8 @@ public class Main {
         URL obj = new URL(url);
 
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+        con.setConnectTimeout(30000);
+        con.setReadTimeout(90000);
 
         // optional default is GET
         //con.setRequestMethod("GET");
@@ -244,14 +250,34 @@ public class Main {
     }
 
 
+    private static void setupLogging(String[] args) {
+        try {
+            java.io.File f = new java.io.File("D:\\AI\\Temp\\ilo2_run.log");
+            java.io.PrintStream file = new java.io.PrintStream(new java.io.FileOutputStream(f, false), true, "UTF-8");
+            java.io.PrintStream oo = System.out;
+            java.io.PrintStream oe = System.err;
+            System.setOut(new java.io.PrintStream(new TeeOutputStream(oo, file), true));
+            System.setErr(new java.io.PrintStream(new TeeOutputStream(oe, file), true));
+            System.out.println("=== iLO2 start " + new java.util.Date() + " args=" + java.util.Arrays.toString(args));
+        } catch (Exception ignored) {
+        }
+    }
+
     public static void main(String[] args) {
+        setupLogging(args);
         Optional<String> configPath = Optional.empty();
 
         switch (args.length) {
             case 0:
-                // <no args>
-                // try the default config location
-                configPath = Optional.of(DEFAULT_CONFIG_PATH);
+                // <no args> -> GUI form (address host:port, login, password)
+                LoginDialog dlg = new LoginDialog();
+                dlg.setVisible(true);
+                if (!dlg.isOk()) {
+                    return;
+                }
+                setHostname(dlg.server);
+                username = dlg.user;
+                password = dlg.password;
                 break;
             case 2:
                 // -c <path>
@@ -316,21 +342,59 @@ public class Main {
                 e.printStackTrace();
             }
             Stage3();
+            System.out.println("HMAP=" + hmap);
             //hmap.put("IPADDR", hostname);
             //hmap.put("DEBUG", "suckAdIck");
 
             remcons rmc = new remcons(hmap);
-            rmc.SetHost(hostname);
+            rmc.SetHost(hostname.split(":")[0]);
 
             JFrame jf = new JFrame();
             Container c = jf.getContentPane();
             jf.setBounds(0, 0, 1070, 880);
             jf.setTitle(hostname + " - iLO2");
-            jf.setVisible(true);
-            jf.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+            jf.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+            jf.addWindowListener(new WindowAdapter() {
+                @Override
+                public void windowClosing(WindowEvent e) {
+                    try {
+                        rmc.stop();
+                    } catch (Exception ignored) {}
+                    try {
+                        HttpURLConnection lc = (HttpURLConnection) new URL(
+                                "https://" + hostname + "/logout.htm").openConnection();
+                        lc.setConnectTimeout(10000);
+                        lc.setReadTimeout(10000);
+                        lc.getInputStream().close();
+                    } catch (Exception ignored) {}
+                    System.exit(0);
+                }
+            });
             c.add(rmc);
             rmc.init();
+            jf.setLocation(0, 0);
+            jf.setAlwaysOnTop(true);
+            jf.setVisible(true);
+            jf.toFront();
+            jf.requestFocus();
+            jf.validate();
             rmc.start();
+
+            final JFrame fjf = jf;
+            new Thread(() -> {
+                int lastW = 0, lastH = 0;
+                for (int i = 0; i < 240; i++) {
+                    try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+                    int w = com.hp.ilo2.remcons.dvcwin.LAST_W;
+                    int h = com.hp.ilo2.remcons.dvcwin.LAST_H;
+                    if (w >= 640 && h >= 480 && (w != lastW || h != lastH)) {
+                        lastW = w;
+                        lastH = h;
+                        fjf.setSize(w + 16, h + 70);
+                        fjf.validate();
+                    }
+                }
+            }).start();
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -1,26 +1,63 @@
-# ILO2RemoteConsole
-ILO2 Java Remote console as Standalone version
+# iLO2 Remote Console — standalone (Windows .exe)
 
-Tested with Java 8 and Java 11. Hangs for an unknown reason on Java 15.
+Standalone launcher for the **HP iLO2 Remote Console (KVM)**. The original iLO2
+Java applet is converted into a standalone Windows application with a simple
+login form — **no browser and no Java Web Start needed**.
 
-# Usage
+## Для чего / Purpose
+- Подключение к KVM-консоли сервера HP iLO2 без браузера и Java-апплета.
+- Простая форма входа: **адрес сервера и порт**, **логин**, **пароль**.
+- Прямой запуск как обычного Windows-приложения (`.exe`).
 
-Because even on the latest firmware (2.33 as of 2021-04-16),
-due to hardware limitations, iLO2 does not support modern TLS (and ciphers).
-Therefore, adjusting the JRE's security settings is necessary. Seemingly, this can not be done at runtime,
-so a custom security file has to be passed to Java. That is what the `-Djava.security.properties=java.security` part does.
+## Требования / Requirements
+- **Java устанавливать НЕ обязательно.** В готовом `.exe` **встроен JRE 8** (нужен
+  для устаревшего TLS iLO2). Ничего дополнительно ставить не надо.
+- Windows x64.
+- Для **сборки из исходников** требуется **JDK 8**.
 
-if this still fails with a TLS related error, the certificate in use by your ILO might still rely on pre-2.33 ciphers.
-In that case, regenerate or replace it through the ILO web interface.
+## Порты / Ports
+| Порт | Назначение | По умолчанию |
+|---|---|---|
+| **Web / SSL (HTTPS)** | вход/логин iLO (поле «адрес:порт») | **443** (пример теста: 444) |
+| **Console (telnet)** | KVM-консоль; сервер сообщает порт в ответе (`INFO6`) | **23** |
+| **Media** | совместимость с iLO4 | 17988 |
+| **Console replay** | совместимость с iLO4 | 17990 |
 
-You can either pass host, username and password as arguments:
+- Поле адреса принимает `host` или `host:port` (например `192.168.0.24:444`).
+  Если порт не указан — используется **443**.
+- Для консоли iLO2 **нужен порт 23** (сервер отдаёт его как `INFO6`). Откройте/пробросьте его.
+- Порты 17988/17990 — для iLO4-подобных консолей (в форме это advanced-поля).
 
-```java -Djava.security.properties=java.security -jar ILO2RemCon.jar <Hostname> <Username> <Password>```
+## Использование / Usage
+1. Запустите **`iLO2RemoteConsole.exe`**.
+2. Заполните: **Адрес** (`host` или `host:port`), **Логин**, **Пароль**.
+3. Нажмите **«Подключиться»** — откроется окно KVM-консоли.
+4. При закрытии окна выполняется **logout** (сессия на iLO освобождается).
 
-Or you can use a config file (for an example, see `config_template.properties`):
+## Сборка / Build (из исходников)
+Требуется JDK 8:
+```bat
+javac -encoding UTF-8 -d build\classes src\main\java\*.java src\main\java\com\hp\ilo2\remcons\*.java
+jar cfe dist\ILO2RemCon.jar Main -C build\classes .
+```
+Упаковка в `.exe` — через [WinRun4J](https://github.com/poidasmith/winrun4j)
+(конфиг `iLO2RemoteConsole.ini`):
+```
+main.class=Main
+classpath.1=ILO2RemCon.jar
+vmarg.1=-Djava.security.properties=java.security
+working.directory=.
+vm.location=jre\bin\server\jvm.dll
+```
+(папка `jre\` — встроенный JRE 8).
 
-``java -Djava.security.properties=java.security -jar ILO2RemCon.jar -c <Path to config.properties>``
+## Важно / Security
+- iLO2 использует **устаревший TLS** (TLSv1.0 / RC4). Приложение ослабляет
+  `java.security` и **отключает проверку сертификата** (`SSLUtilities.trustAll*`).
+  Используйте только в доверенной сети.
+- Не храните пароли в репозитории (используйте форму или `config.properties`, не коммитьте его).
 
-Running the Application without arguments will try using a `config.properties` in the current working directory.
-
-
+## Происхождение / Credits
+- Основано на `scrapes/ILO2-Standalone-Remote-Console` (содержит код консоли HP iLO2).
+- HP iLO2 Remote Console © Hewlett-Packard. Код предоставляется «как есть» (as-is)
+  для пользователей iLO2. Все права на оригинальный код принадлежат HP.

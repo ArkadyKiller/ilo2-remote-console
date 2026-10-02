@@ -30,3 +30,7 @@ build
 # Project specific
 data.cook
 config.properties
+dist/
+dist_out/
+jre/
+*.log
